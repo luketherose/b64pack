@@ -161,10 +161,12 @@ def pack(args):
         data = build_zip(entries)
         print(f"{len(entries)} file compressi")
         if skipped_dirs or skipped_files:
-            shown = skipped_dirs[:8]
-            more = f" e altre {len(skipped_dirs) - 8}" if len(skipped_dirs) > 8 else ""
-            files = f", {skipped_files} file (.class, .DS_Store)" if skipped_files else ""
-            print(f"esclusi (--all per includerli): {', '.join(shown)}{more}{files}")
+            items = skipped_dirs[:8]
+            if len(skipped_dirs) > 8:
+                items.append(f"altre {len(skipped_dirs) - 8} cartelle")
+            if skipped_files:
+                items.append(f"{skipped_files} file (.class, .DS_Store)")
+            print(f"esclusi (--all per includerli): {', '.join(items)}")
 
     text = base64.b64encode(data).decode("ascii")
     lines = [text[i:i + LINE_WIDTH] for i in range(0, len(text), LINE_WIDTH)]
@@ -244,7 +246,10 @@ def unpack(args):
 
     pieces = []
     for path in paths:
-        compact = re.sub(r"\s+", "", path.read_text(encoding="utf-8-sig", errors="replace"))
+        raw = path.read_bytes()
+        # Windows PowerShell 5.1 con '>' scrive UTF-16 con BOM.
+        encoding = "utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
+        compact = re.sub(r"\s+", "", raw.decode(encoding, errors="replace"))
         bad = re.search(r"[^A-Za-z0-9+/=]", compact)
         if bad:
             fail(f"{path.name} contiene un carattere che non e' base64: {bad.group()!r}")

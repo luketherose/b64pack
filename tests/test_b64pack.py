@@ -109,6 +109,16 @@ class B64PackTest(unittest.TestCase):
         self.assertEqual(run(self.tmp, "unpack", "copia.zip.b64.txt").returncode, 0)
         self.assertEqual((self.tmp / "copia.zip").read_bytes(), original_zip)
 
+    def test_utf16_text_and_only_skipped_files(self):
+        self.write("cartella/doc.pdf", b"%PDF")
+        self.write("cartella/.DS_Store", b"\0")
+        packed = run(self.tmp, "pack", "cartella")
+        self.assertIn("includerli): 1 file", packed.stdout)
+        text = (self.tmp / "cartella.zip.b64.txt").read_text()
+        (self.tmp / "utf16.txt").write_bytes(b"\xff\xfe" + text.encode("utf-16-le"))
+        self.assertEqual(run(self.tmp, "unpack", "utf16.txt", "-x", "out").returncode, 0)
+        self.assertEqual((self.tmp / "out/cartella/doc.pdf").read_bytes(), b"%PDF")
+
     def test_existing_output_needs_force(self):
         self.write("doc.pdf", b"x")
         self.assertEqual(run(self.tmp, "pack", "doc.pdf").returncode, 0)
