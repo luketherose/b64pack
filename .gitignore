@@ -1,0 +1,4 @@
+*.b64.txt
+*.b64.part*of*.txt
+__pycache__/
+.DS_Store
